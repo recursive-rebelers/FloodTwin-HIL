@@ -1,0 +1,15 @@
+CARLA
+  ↓
+Physics Layer
+  ↓
+Digital Twin Sensors
+  ↓
+Reliability Engine
+  ↓
+Adaptive Fusion
+  ↓
+Fault Injection
+  ↓
+Metrics Engine
+  ↓
+Dashboard
