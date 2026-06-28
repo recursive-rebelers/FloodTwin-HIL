@@ -1,7 +1,0 @@
-ID,Objective,Inputs,Outputs,Status
-EXP-01,Single Sensor Baseline,Scenario+Sensor,RMSE/MAE,Pending
-EXP-02,Fixed Fusion,Scenario+All Sensors,RMSE/MAE,Pending
-EXP-03,Adaptive Fusion,Scenario+Reliability,RMSE/MAE+Confidence,Pending
-EXP-04,Turbidity Analysis,Scenario (High NTU),Error vs NTU Plot,Pending
-EXP-05,Fault Injection,Scenario+Fault Models,Performance Drop %,Pending
-EXP-06,Reliability Evaluation,Scenario Matrix,Reliability Score,Pending
