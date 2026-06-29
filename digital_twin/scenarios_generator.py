@@ -11,7 +11,7 @@ def generate_scenarios(output_dir="."):
     
     # Configuration options for categorical variations
     road_types = ['Asphalt', 'Concrete', 'Gravel', 'Dirt', 'Mud','Urban','Rural']
-    weather_options = ['Clear', 'Cloudy', 'Rainy', 'Drizzle' 'Foggy','Mist','Thunderstorm']
+    weather_options = ['Clear', 'Cloudy', 'Rainy', 'Drizzle','Foggy','Mist','Thunderstorm']
     lighting_options = ['Dawn','Daylight', 'Dusk', 'Night_Streetlights', 'Night_Dark']
     
     for i in range(1, 51):
