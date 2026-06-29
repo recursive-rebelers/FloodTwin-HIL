@@ -1,27 +1,41 @@
 import numpy as np
 import random
-# Radar sensor simulation
+
 class RadarModel:
 
-    # Initialize radar noise level
-    def __init__(self, base_noise_sigma=0.1):
+    def __init__(self, base_noise_sigma=0.1, seed=42):
+
         self.base_noise_sigma = base_noise_sigma
+        random.seed(seed)
+        np.random.seed(seed)
 
-    # Generate radar depth reading
-    def generate(self, true_depth, water_depth):
+    def generate(self, true_depth, water_depth, ntu):
 
-        # Add Gaussian noise to the true depth
-        radar_distance = true_depth + np.random.normal(
-            0,
-            self.base_noise_sigma
-        )
-        # Simulate clutter in deeper water
-        if water_depth > 5:
-            clutter_probability = 0.15
+        noise_sigma = self.base_noise_sigma + water_depth * 0.01 + ntu / 5000
+        clutter_probability = min(0.30, 0.05 + water_depth * 0.02 + ntu / 5000)
+        radar_distance = true_depth + np.random.normal(0, noise_sigma)
 
-            # Apply clutter with 15% probability
-            if random.random() < clutter_probability:
-                radar_distance += np.random.normal(0.5, 0.2)
+        if random.random() < clutter_probability:
+            radar_distance += np.random.normal(0.4, 0.15)
 
-        # Return simulated radar reading
-        return round(radar_distance, 2)
+        snr = max(5, 30 - water_depth * 1.2)
+        rcs = round(max(0.1, 1 - water_depth / 20), 3)
+
+        return {
+            "distance": round(radar_distance, 2),
+            "snr": round(snr, 2),
+            "rcs": rcs,
+            "clutter_probability": round(clutter_probability, 3)
+        }
+
+    def reliability(self, water_depth):
+        
+        reliability = np.exp(-water_depth / 20)
+        return round(min(1.0, max(0.3, reliability)), 3)
+
+    def metadata(self):
+
+        return {
+            "sensor": "HLK-LD2411S",
+            "noise_sigma": self.base_noise_sigma
+        }

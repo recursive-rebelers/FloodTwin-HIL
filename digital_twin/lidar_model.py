@@ -1,43 +1,45 @@
 import numpy as np
 
 class LidarModel:
-    def __init__(self, base_noise_sigma=0.5, refraction_factor=0.15):
 
-
-        """
-        Initializes the VL53L1X LiDAR twin with base physical properties.
-        """
+    def __init__(self, base_noise_sigma=0.25, refraction_factor=0.12, seed=42):
 
         self.base_noise_sigma = base_noise_sigma
         self.refraction_factor = refraction_factor
+        np.random.seed(seed)
 
     def generate(self, true_depth, water_depth, ntu):
 
-
-        """
-        Simulates measured distance based on true depth and environmental factors.
-        """
-        # 1. Start with baseline noise and zero bias
         noise_sigma = self.base_noise_sigma
-        refraction_bias = 0.0
-        measurement_uncertainty_multiplier = 1.0 
 
-        # 2. Water Effects: Increases base noise and adds refraction bias
-        if water_depth > 0:
-            refraction_bias = water_depth * self.refraction_factor
-            noise_sigma += 1.2 
+        # Water attenuation
+        water_penalty = 1 + 0.05 * water_depth
 
-        # 3. Turbidity (NTU) Effects: Muddy water scatters the signal
-        if ntu > 0:
-            measurement_uncertainty_multiplier += (ntu / 100.0)
+        # Turbidity attenuation
+        turbidity_penalty = 1 + (ntu / 500) * 1.5
 
-        # Calculate the final dynamic Gaussian noise
-        dynamic_noise = np.random.normal(
-            loc=0.0, 
-            scale=(noise_sigma * measurement_uncertainty_multiplier)
-        )
+        # Mild nonlinear refraction
+        refraction_bias = (self.refraction_factor * np.sqrt(max(water_depth, 0)))
+        noise_sigma *= (water_penalty * turbidity_penalty)
+        noise = np.random.normal(0, noise_sigma)
+        measurement = (true_depth + refraction_bias + noise)
 
-        # 4. Final Sensor Output Calculation
-        lidar_distance = true_depth + refraction_bias + dynamic_noise
+        return round(max(0, measurement), 2)
 
-        return round(lidar_distance, 2)
+    def reliability(self, water_depth, ntu):
+
+        R = (np.exp(-water_depth/15) * np.exp(-ntu/500))
+        return round(max(0.1, R), 3)
+
+    def degradation_factor(self, water_depth, ntu):
+
+        degradation = (1 - self.reliability(water_depth, ntu))
+        return round(degradation, 3)
+
+    def metadata(self):
+
+        return {
+            "sensor": "VL53L1X",
+            "base_noise_sigma": self.base_noise_sigma,
+            "refraction_factor": self.refraction_factor
+        }

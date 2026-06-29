@@ -1,61 +1,32 @@
-import csv
-import os
 import random
 
+SEED = 42
+random.seed(SEED)
 
 class FSIR01Model:
-    
-   # Virtual FS-IR01 Water Detection Sensor
-   # Output: categorical water state
-    
 
-    def detect_water_state(self, water_depth):
+    def __init__(self, noise_sigma=0.15):
+        self.noise_sigma = noise_sigma
 
-        # small sensor noise (realistic uncertainty)
-        noise = random.gauss(0, 0.15)
-        effective_depth = water_depth + noise
+    def detect(self, water_depth):
 
-        # classification logic
+        effective_depth = max(0, water_depth + random.gauss(0, self.noise_sigma))
+
         if effective_depth <= 0.5:
-            return "Dry"
+            state = "Dry"
+            confidence = 0.98
 
-        elif 0.5 < effective_depth <= 3.0:
-            return "Shallow Puddle"
+        elif effective_depth <= 3:
+            state = "Shallow Puddle"
+            confidence = 0.90
 
         else:
-            return "Flooded Pothole"
+            state = "Flooded Pothole"
+            confidence = 0.95
 
-
-def process_registry(registry_dir):
-
-    file_path = os.path.join(registry_dir, "scenario_registry.csv")
-
-    if not os.path.exists(file_path):
-        print("Scenario registry not found.")
-        return
-
-    sensor = FSIR01Model()
-
-    print("\n FS-IR01 Water Condition Sensor \n")
-
-    with open(file_path, "r") as file:
-        reader = csv.DictReader(file)
-
-        for row in reader:
-
-            scenario_id = row["scenario_id"]
-            water_depth = float(row["water_depth"])
-
-            water_state = sensor.detect_water_state(water_depth)
-
-            print(f"Scenario ID   : {scenario_id}")
-            print(f"Water Depth   : {water_depth:.2f} cm")
-            print(f"Water State   : {water_state}")
-            print("-" * 45)
-
-
-if __name__ == "__main__":
-
-    path = r"C:/B.Tech-IT 2023-2027/PROJECT_INTERVIEW/FloodTwin-HIL/scenarios"
-
-    process_registry(path)
+        return {
+            "state": state,
+            "water_present": effective_depth > 0.5,
+            "confidence": round(confidence, 3),
+            "reliability": round(confidence, 3)
+        }
