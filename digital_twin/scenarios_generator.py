@@ -1,48 +1,161 @@
 import csv
-import os
 import random
+from pathlib import Path
 
-def generate_scenarios(output_dir="."):
-    # Ensure the target directory exists
-    os.makedirs(output_dir, exist_ok=True)
-    file_path = os.path.join(output_dir, 'scenario_registry.csv')
-    
+SEED = 42
+random.seed(SEED)
+
+ROAD_TYPES = [
+    'Asphalt',
+    'Concrete',
+    'Gravel',
+    'Dirt',
+    'Mud'
+]
+
+ROAD_ENVIRONMENTS = [
+    'Urban',
+    'Rural'
+]
+
+WEATHER_OPTIONS = [
+    'Clear',
+    'Cloudy',
+    'Drizzle',
+    'Rainy',
+    'Foggy',
+    'Mist',
+    'Thunderstorm'
+]
+
+LIGHTING_OPTIONS = [
+    'Dawn',
+    'Daylight',
+    'Dusk',
+    'Night_Streetlights',
+    'Night_Dark'
+]
+
+
+def generate_ntu(weather):
+
+    if weather == 'Clear':
+        return random.randint(0,100)
+
+    elif weather == 'Cloudy':
+        return random.randint(50,180)
+
+    elif weather == 'Drizzle':
+        return random.randint(80,220)
+
+    elif weather == 'Rainy':
+        return random.randint(120,320)
+
+    elif weather == 'Foggy':
+        return random.randint(100,250)
+
+    elif weather == 'Mist':
+        return random.randint(80,200)
+
+    elif weather == 'Thunderstorm':
+        return random.randint(250,500)
+
+    return random.randint(0,500)
+
+def compute_severity(depth, water, ntu):
+    score = (0.4*water + 0.4*(ntu/500)*10 + 0.2*(depth/20)*10)
+
+    if score < 3:
+        return 'Low'
+
+    elif score < 6:
+        return 'Moderate'
+
+    elif score < 8:
+        return 'Severe'
+
+    else:
+        return 'Extreme'
+
+def generate_speed():
+    return round(random.uniform(2, 12), 2)
+
+def generate_scenarios(output_dir='.', num_scenarios=100):
+
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    file_path = (output_dir / 'scenario_registry.csv')
     scenarios = []
-    
-    # Configuration options for categorical variations
-    road_types = ['Asphalt', 'Concrete', 'Gravel', 'Dirt', 'Mud','Urban','Rural']
-    weather_options = ['Clear', 'Cloudy', 'Rainy', 'Drizzle','Foggy','Mist','Thunderstorm']
-    lighting_options = ['Dawn','Daylight', 'Dusk', 'Night_Streetlights', 'Night_Dark']
-    
-    for i in range(1, 51):
+
+    for i in range(1, num_scenarios+1):
+
         scenario_id = f"SC{i:03d}"
-        road_type = random.choice(road_types)
+
+        road_type = random.choice(ROAD_TYPES)
+
+        road_environment = random.choice(ROAD_ENVIRONMENTS)
+
+        weather = random.choice(WEATHER_OPTIONS)
+
+        lighting = random.choice(LIGHTING_OPTIONS)
+
         pothole_depth = random.randint(5, 20)
-        water_depth = random.randint(0, 10)
-        ntu = random.randint(0, 500)
-        weather = random.choice(weather_options)
-        lighting = random.choice(lighting_options)
-        vehicle_speed = round(random.uniform(0.0, 8.0), 2)
-            
+
+        water_depth = random.randint(0, pothole_depth)
+
+        ntu = generate_ntu(weather)
+
+        vehicle_speed = generate_speed()
+
+        severity = compute_severity(pothole_depth, water_depth, ntu)
+
         scenarios.append([
-            scenario_id, road_type, pothole_depth, water_depth, 
-            ntu, weather, lighting, vehicle_speed
+            scenario_id,
+            road_environment,
+            road_type,
+            pothole_depth,
+            water_depth,
+            ntu,
+            weather,
+            lighting,
+            vehicle_speed,
+            severity
         ])
-        
-    # Updated headers
+
     headers = [
-        'scenario_id', 'road_type', 'pothole_depth', 'water_depth', 
-        'ntu', 'weather', 'lighting', 'vehicle_speed'
+        'scenario_id',
+        'road_environment',
+        'road_type',
+        'pothole_depth',
+        'water_depth',
+        'ntu',
+        'weather',
+        'lighting',
+        'vehicle_speed',
+        'severity'
     ]
-    
-    with open(file_path, mode='w', newline='') as file:
+
+    with open(file_path, mode='w', newline='', encoding='utf-8') as file:
+
         writer = csv.writer(file)
         writer.writerow(headers)
         writer.writerows(scenarios)
-        
-    print(f"Successfully Generated 50 Gcenarios And Saved To: {file_path}")
+
+    print()
+    print("="*60)
+    print(f"{num_scenarios} Scenarios Generated")
+    print()
+    print(f"Saved To:\n{file_path}")
+    print()
+    print("Seed : 42")
+    print()
+    print("="*60)
+
 
 if __name__ == "__main__":
-    target_path = "C:/B.Tech-IT 2023-2027/PROJECT_INTERVIEW/FloodTwin-HIL/scenarios" 
-    
-    generate_scenarios(output_dir=target_path)
+
+    BASE_DIR = (Path(__file__).resolve().parent.parent)
+    target_path = (BASE_DIR / "scenarios")
+
+    generate_scenarios(output_dir=target_path, num_scenarios=10000)
