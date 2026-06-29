@@ -25,12 +25,3 @@ class RadarModel:
 
         # Return simulated radar reading
         return round(radar_distance, 2)
-# Test the Radar model
-
-if __name__ == "__main__":
-
-    radar = RadarModel()
-
-    for water in [0, 2, 5, 8, 10]:
-        value = radar.generate(15, water)
-        print(f"Water Depth = {water} cm -> Radar = {value} cm")
