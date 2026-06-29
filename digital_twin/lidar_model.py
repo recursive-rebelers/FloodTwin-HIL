@@ -2,10 +2,21 @@ import numpy as np
 
 class LidarModel:
     def __init__(self, base_noise_sigma=0.5, refraction_factor=0.15):
+
+
+        """
+        Initializes the VL53L1X LiDAR twin with base physical properties.
+        """
+
         self.base_noise_sigma = base_noise_sigma
         self.refraction_factor = refraction_factor
 
     def generate(self, true_depth, water_depth, ntu):
+
+
+        """
+        Simulates measured distance based on true depth and environmental factors.
+        """
         # 1. Start with baseline noise and zero bias
         noise_sigma = self.base_noise_sigma
         refraction_bias = 0.0
