@@ -12,7 +12,7 @@
 
 ## Daily Update Log
 * **Day 1:** Drafted Architecture (Figure 1 placeholder), defined core metrics, finalized experimental scenario matrix.
-* **Day 2:** (Pending)
+* **Day 2:** Completed physics-aware digital twin sensor suite (LiDAR, Ultrasonic, Radar, IMU, etc.), generated `dataset_v1.csv`, and finalized initial degradation visualizations.
 * **Day 3:** (Pending)
 * **Day 4:** (Pending)
 * **Day 5:** (Pending)
