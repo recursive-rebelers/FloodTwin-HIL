@@ -1,20 +1,21 @@
 import pandas as pd
 from pathlib import Path
-
-from lidar_model import LidarModel
-from ultrasonic_model import UltrasonicModel
-from radar_model import RadarModel
-from imu_model import generate_mpu6050_metrics
-from turbidity_model import TurbidityModel
-from water_contact_model import FSIR01Model
-
+import sys
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(BASE_DIR))
+
+from digital_twin.lidar_model import LidarModel
+from digital_twin.ultrasonic_model import UltrasonicModel
+from digital_twin.radar_model import RadarModel
+from digital_twin.imu_model import generate_mpu6050_metrics
+from digital_twin.turbidity_model import TurbidityModel
+from digital_twin.water_contact_model import FSIR01Model
 
 SCENARIO_FILE = BASE_DIR / "scenarios" / "scenario_registry.csv"
 DATASET_FILE = BASE_DIR / "datasets" / "dataset_v1.csv"
 
-RESULTS_DIR = BASE_DIR / "results"
+RESULTS_DIR = BASE_DIR / "results" / "digital_twin"
 
 NUM_STATS_FILE = RESULTS_DIR / "numerical_statistics.csv"
 CAT_STATS_FILE = RESULTS_DIR / "categorical_statistics.csv"

@@ -3,7 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-os.makedirs("figures", exist_ok=True)
+os.makedirs("figures/digital_twin", exist_ok=True)
 df = pd.read_csv("datasets/dataset_v1.csv")
 
 df["lidar_error"] = abs(df["lidar"] - df["true_depth"])
@@ -61,7 +61,7 @@ ax.set_ylabel("Absolute Error (cm)", labelpad=12)
 sns.despine()
 plt.tight_layout()
 
-plt.savefig("figures/figure_lidar.png", dpi=600, bbox_inches="tight")
+plt.savefig("figures/digital_twin/figure_lidar.png", dpi=600, bbox_inches="tight")
 plt.close()
 
 ####################################################
@@ -100,7 +100,7 @@ ax.set_ylim(0, df["ultrasonic_error"].quantile(0.99))
 sns.despine()
 plt.tight_layout()
 
-plt.savefig("figures/figure_ultrasonic.png", dpi=600, bbox_inches="tight")
+plt.savefig("figures/digital_twin/figure_ultrasonic.png", dpi=600, bbox_inches="tight")
 plt.close()
 
 ####################################################
@@ -139,7 +139,7 @@ ax.set_ylim(0, df["radar_error"].quantile(0.995))
 sns.despine()
 plt.tight_layout()
 
-plt.savefig("figures/figure_radar.png", dpi=600, bbox_inches="tight")
+plt.savefig("figures/digital_twin/figure_radar.png", dpi=600, bbox_inches="tight")
 plt.close()
 
 print("FloodTwin-HIL Day 2 Visualizations Generated!")

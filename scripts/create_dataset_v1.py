@@ -76,9 +76,6 @@ def initialize_dataset(output_dir="."):
             "1.0",
 
         "scenario_count":
-            100,
-
-        "expected_samples":
             10000,
 
         "digital_twin_ready":
