@@ -12,3 +12,6 @@ results/digital_twin/correlation_matrix.csv
 results/digital_twin/numerical_statistics.csv
 results/digital_twin/categorical_statistics.csv
 results/digital_twin/missing_values.csv
+
+results/reliability_engine/fusion_statistics.csv
+results/reliability_engine/adaptive_weights.csv
