@@ -18,8 +18,9 @@ class RadarModel:
         if random.random() < clutter_probability:
             radar_distance += np.random.normal(0.4, 0.15)
 
-        snr = max(5, 30 - water_depth * 1.2)
-        rcs = round(max(0.1, 1 - water_depth / 20), 3)
+        snr = (30 - water_depth * 1.2 + np.random.normal(0, 1.5))
+        snr = np.clip(snr, 5, 35)
+        rcs = max(0.15, np.exp(-water_depth / 25))
 
         return {
             "distance": round(radar_distance, 2),
@@ -28,10 +29,12 @@ class RadarModel:
             "clutter_probability": round(clutter_probability, 3)
         }
 
-    def reliability(self, water_depth):
-        
-        reliability = np.exp(-water_depth / 20)
-        return round(min(1.0, max(0.3, reliability)), 3)
+    def reliability(self, water_depth, ntu=0):
+
+        water_term = np.exp(-water_depth / 22)
+        turbidity_term = np.exp(-ntu / 2500)
+        reliability = (water_term * turbidity_term)
+        return round(min(1.0, max(0.35, reliability)), 3)
 
     def metadata(self):
 
