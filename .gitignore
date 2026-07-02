@@ -1,12 +1,14 @@
-# Environments and Caches
+# Environments / Caches
 venv/
 .venv/
 __pycache__/
 *.pyc
 pyvenv.cfg
+*.json
+.env*
 
-# Test and temporary files
-test_*.py
-datasets/
-figures/
-results/
+# Temporary Local Test Files
+results/digital_twin/correlation_matrix.csv
+results/digital_twin/numerical_statistics.csv
+results/digital_twin/categorical_statistics.csv
+results/digital_twin/missing_values.csv
