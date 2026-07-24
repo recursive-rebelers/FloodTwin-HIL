@@ -1,2 +1,2 @@
-samples,avg_lidar_error,avg_ultrasonic_error,avg_radar_error,avg_R_lidar,avg_R_ultrasonic,avg_R_radar,avg_R_imu,avg_R_water,avg_water_depth,avg_ntu,avg_snr,avg_surface_echo,max_water_depth,max_ntu
-10000,0.273003,-2.507035,0.07734200000000001,0.498704,0.517732,0.7716919000000001,0.9639968999999999,0.9416960000000001,6.1862,175.170198,22.559212,0.306384,20,500.0
+samples,avg_lidar_error,avg_ultrasonic_error,avg_radar_error,lidar_rmse,ultrasonic_rmse,radar_rmse,avg_R_lidar,avg_R_ultrasonic,avg_R_radar,avg_R_imu,avg_R_water,avg_water_depth,avg_ntu,avg_snr,avg_surface_echo,max_water_depth,max_ntu,mixed_echo_ratio,surface_echo_ratio,bottom_echo_ratio,avg_bottom_confidence,avg_echo_ambiguity,avg_surface_sigma,avg_bottom_sigma
+30000,0.12832,-1.69606,0.07756,0.89277,2.86591,0.27765,0.50748,0.42779,0.7702,0.96416,0.94191,6.22993,175.51091,22.52832,0.30795,20.0,500.0,0.19517,0.3756,0.42923,0.51184,0.65252,0.37585,0.19676
