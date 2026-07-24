@@ -9,7 +9,6 @@ class FSIR01Model:
         self.noise_sigma = noise_sigma
 
     def detect(self, water_depth):
-
         effective_depth = max(0, water_depth + random.gauss(0, self.noise_sigma))
 
         if effective_depth <= 0.5:

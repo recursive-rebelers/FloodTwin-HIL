@@ -4,13 +4,11 @@ import random
 class RadarModel:
 
     def __init__(self, base_noise_sigma=0.1, seed=42):
-
         self.base_noise_sigma = base_noise_sigma
         random.seed(seed)
         np.random.seed(seed)
 
     def generate(self, true_depth, water_depth, ntu):
-
         noise_sigma = self.base_noise_sigma + water_depth * 0.01 + ntu / 5000
         clutter_probability = min(0.30, 0.05 + water_depth * 0.02 + ntu / 5000)
         radar_distance = true_depth + np.random.normal(0, noise_sigma)
@@ -30,14 +28,12 @@ class RadarModel:
         }
 
     def reliability(self, water_depth, ntu=0):
-
         water_term = np.exp(-water_depth / 22)
         turbidity_term = np.exp(-ntu / 2500)
         reliability = (water_term * turbidity_term)
         return round(min(1.0, max(0.35, reliability)), 3)
 
     def metadata(self):
-
         return {
             "sensor": "HLK-LD2411S",
             "noise_sigma": self.base_noise_sigma

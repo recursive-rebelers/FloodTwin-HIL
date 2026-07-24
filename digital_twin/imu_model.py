@@ -19,24 +19,15 @@ ENVIRONMENT_FACTOR = {
 }
 
 def generate_mpu6050_metrics(
-        road_type,
-        road_environment,
-        vehicle_speed,
-        pothole_depth,
-        water_depth,
-        base_pitch=0,
-        base_roll=0):
+    road_type, road_environment,
+    vehicle_speed, pothole_depth, water_depth,
+    base_pitch=0, base_roll=0):
 
-    roughness = (
-        SURFACE_FACTOR.get(road_type, 1.0) *
-        ENVIRONMENT_FACTOR.get(road_environment, 1.0)
-    )
-
+    roughness = (SURFACE_FACTOR.get(road_type, 1.0) * ENVIRONMENT_FACTOR.get(road_environment, 1.0))
     water_factor = max(0.7, 1 - (water_depth / max(pothole_depth, 1)) * 0.3)
 
     pitch = base_pitch + pothole_depth * random.uniform(0.12, 0.28)
     roll = base_roll + pothole_depth * random.uniform(0.08, 0.22)
-
     pitch_rad = math.radians(pitch)
     roll_rad = math.radians(roll)
 
@@ -58,9 +49,7 @@ def generate_mpu6050_metrics(
 
     roll_est = math.atan2(ay, math.sqrt(ax**2 + az**2))
     pitch_est = math.atan2(-ax, math.sqrt(ay**2 + az**2))
-
     acceleration = math.sqrt(ax**2 + ay**2 + az**2)
-
     reliability = max(0.6, 1 - vibration / 2)
 
     return {
