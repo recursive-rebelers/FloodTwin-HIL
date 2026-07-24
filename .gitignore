@@ -13,7 +13,8 @@ results/digital_twin/numerical_statistics.csv
 results/digital_twin/categorical_statistics.csv
 results/digital_twin/missing_values.csv
 
-results/reliability_engine/fusion_statistics.csv
-results/reliability_engine/adaptive_weights.csv
+results/reliability_engine/reliability_correlations.csv
+results/reliability_engine/reliability_quantiles.csv
+results/reliability_engine/reliability_validation.csv
 
 results/fusion_engine/fusion_results.csv
