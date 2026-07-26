@@ -111,7 +111,7 @@ def generate_robustness_figures(results_path=RESULTS_FILE):
         x_vals + width / 2,
         ordered_df["Adaptive_RMSE_cm"],
         width=width,
-        label="Adaptive Fusion (Proposed)",
+        label="Adaptive Fusion",
         color="#4d94ff",
         edgecolor="#003399")
 
