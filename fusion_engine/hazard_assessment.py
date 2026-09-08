@@ -89,14 +89,18 @@ class HazardAssessment:
 
     def metadata(self):
         return {
-            "method": "Bayesian Exceedance Probability",
+            "method": "Posterior Hazard Exceedance Assessment",
             "threshold_cm": self.threshold,
             "decision_boundary": self.decision_boundary,
-            "risk_model": "Hazard probability + conditional expected hazard severity + fusion confidence + scene complexity",
-            
+            "hazard_definition": "Hazard is defined as posterior probability mass at or above the configured depth threshold.",
+            "hazard_probability": "Posterior exceedance probability P(D >= threshold | observations)",
+            "decision_rule": "Confidence-adjusted hazard score with SAFE, CAUTION, and HAZARD decision regions.",
+            "risk_model": "Weighted engineering risk index combining hazard exceedance, conditional depth severity, fusion confidence, and scene complexity.",
+            "risk_score_range": [0.0, 100.0],
+
             "outputs": [
                 "hazard_probability",
-                "effective_probability",
+                "decision_score",
                 "severity_index",
                 "expected_hazard_depth",
                 "risk_score",
@@ -107,4 +111,13 @@ class HazardAssessment:
                 "fusion_confidence",
                 "scene_complexity",
             ],
+
+            "assumptions": [
+                "The hazard threshold is an engineering-defined decision criterion.",
+                "Hazard probability is computed from posterior probability mass above the threshold.",
+                "Severity index represents normalized conditional expected depth above the hazard threshold.",
+                "Fusion confidence is an engineered posterior-concentration score rather than a calibrated probability.",
+                "Scene complexity is a bounded contextual factor in the range [0, 1].",
+                "The operational risk score is an engineering index and is not a calibrated probability of physical risk."
+            ]
         }

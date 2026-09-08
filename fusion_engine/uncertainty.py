@@ -162,10 +162,11 @@ class UncertaintyQuantification:
 
     def metadata(self):
         return {
-            "method": "Bayesian Uncertainty Quantification",
+            "method": "Posterior-Based Uncertainty Quantification",
             "mass_level": self.mass_level,
             "reference_peak_fraction": self.reference_peak_fraction,
-            "confidence": "Concentration index from posterior peak, interval width, entropy, and variance",
+            "uncertainty_representation": "Discrete probability mass derived from the Bayesian posterior density",
+            "confidence_definition": "Engineered posterior-concentration index based on peak concentration, credible-interval compactness, entropy, variance, and effective support",
 
             "confidence_components": {
                 "posterior_concentration": "0.27 × peak_score",
@@ -177,22 +178,32 @@ class UncertaintyQuantification:
 
             "posterior_metrics": [
                 "MAP Estimate",
-                "Expected Value",
-                "Variance",
-                "Standard Deviation",
-                "Entropy",
-                "Posterior Peak",
-                "95% Credible Interval",
-                "95% Interval Width",
-                "Normalized Scores",
+                "Expected Depth",
+                "Posterior Variance",
+                "Posterior Standard Deviation",
+                "Posterior Entropy",
+                "Posterior Peak Mass",
+                "Credible Interval",
+                "Credible Interval Width",
                 "Effective Support",
                 "Support Fraction",
-                "MAP-Expected Gap",
-                "Confidence Component Breakdown",
+                "MAP-Expected Depth Gap",
             ],
 
-            "notes": [
-                "Input posterior is normalized to a valid mass distribution before scoring",
-                "Confidence is bounded to [0,1] and remains stable under degenerate posteriors",
+            "normalized_scores": [
+                "Peak Score",
+                "Interval Score",
+                "Entropy Score",
+                "Variance Score",
+                "Support Fraction",
+                "MAP-Expected Gap Score",
+            ],
+
+            "assumptions": [
+                "The input posterior density is converted into a normalized discrete probability mass distribution before uncertainty analysis.",
+                "Credible intervals are obtained from cumulative posterior mass on the discretized depth grid.",
+                "Confidence is a bounded posterior-concentration index and is not a calibrated probability of estimation correctness.",
+                "Effective support and entropy characterize posterior concentration rather than empirical estimation accuracy.",
+                "The reference peak fraction and confidence component weights are engineering-defined parameters."
             ],
         }

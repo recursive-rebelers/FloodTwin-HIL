@@ -42,11 +42,25 @@ class FixedFusionEngine:
 
     def metadata(self):
         return {
-            "method": "Fixed Bayesian Fusion",
-            "fusion": "Log-Linear Opinion Pool",
-            "weights": {
-                "lidar": 0.3333333333,
-                "ultrasonic": 0.3333333333,
-                "radar": 0.3333333333,
-            }
+            "method": "Fixed-Weight Bayesian Posterior Fusion",
+            "fusion": "Tempered Weighted Log-Opinion Pooling",
+            "weighting_strategy": "Equal Fixed Weights",
+            "weights": {"lidar": 1.0 / 3.0, "ultrasonic": 1.0 / 3.0, "radar": 1.0 / 3.0},
+            "likelihood_model": "Gaussian Depth-Observation Likelihood",
+            "posterior_formulation": "Uniform prior combined with the fixed-weight tempered pooled likelihood",
+
+            "estimation_outputs": [
+                "MAP Depth",
+                "Expected Depth",
+                "Posterior Variance",
+                "Posterior Entropy"
+            ],
+
+            "assumptions": [
+                "All sensor observations receive equal fixed fusion weights.",
+                "Sensor likelihoods are represented as Gaussian depth-observation models.",
+                "Likelihoods are combined using weighted logarithmic opinion pooling.",
+                "The resulting pooled likelihood is combined with a uniform prior over the modeled depth domain.",
+                "The fixed-weight configuration serves as a non-adaptive baseline for comparison with reliability-aware fusion."
+            ]
         }

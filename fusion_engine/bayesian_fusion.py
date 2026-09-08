@@ -70,7 +70,7 @@ class BayesianFusionCore:
         return self._posterior_mass_from_density(posterior_density)
 
     def compute_likelihood(self, measurement: float, sigma: float) -> np.ndarray:
-        measurement = float(np.clip(measurement, self.depth_min, self.depth_max))
+        measurement = float(measurement)
         sigma = float(max(sigma, 1e-6))
         exponent = self._log_gaussian_density(measurement, sigma)
         likelihood = np.exp(exponent)
@@ -234,12 +234,42 @@ class BayesianFusionCore:
             },
         }
 
-    def metadata(self) -> Dict[str, Any]:
+    def metadata(self):
         return {
-            "method": "Bayesian Fusion Core",
-            "depth_range_cm": (float(self.depths[0]), float(self.depths[-1])),
+            "method": "Bayesian Posterior Fusion with Reliability-Weighted Log-Opinion Pooling",
+            "prior": "Uniform prior over the modeled depth domain",
+            "depth_range_cm": [self.depth_min, self.depth_max],
             "resolution": len(self.depths),
-            "delta_x": float(self.delta_x),
-            "likelihood_model": "Gaussian on depth grid",
-            "pooling": "Tempered weighted log-opinion pool",
+            "grid_spacing_cm": self.delta_x,
+            "likelihood_model": "Gaussian depth-observation likelihood evaluated on a discretized depth grid",
+            "pooling_method": "Tempered weighted logarithmic opinion pooling",
+            "posterior_formulation": "Posterior proportional to the uniform prior multiplied by the reliability-weighted tempered pooled likelihood",
+
+            "estimation_outputs": [
+                "MAP Depth",
+                "Expected Depth",
+                "Posterior Variance",
+                "Posterior Standard Deviation",
+                "Credible Interval",
+                "Posterior Entropy"
+            ],
+
+            "diagnostics": [
+                "Posterior Peak",
+                "Posterior Entropy",
+                "Effective Posterior Support",
+                "Support Fraction",
+                "MAP-Expected Depth Gap"
+            ],
+
+            "confidence_definition": "Engineered posterior-concentration confidence score, not a calibrated probability of estimation correctness",
+
+            "assumptions": [
+                "Sensor observations are represented as Gaussian likelihoods over depth.",
+                "Sensor weights are normalized reliability-derived contextual trust weights.",
+                "Likelihoods are combined using weighted logarithmic opinion pooling rather than direct independent-likelihood multiplication.",
+                "A finite discretized depth domain is used for numerical posterior computation.",
+                "The uniform prior represents a non-informative prior over the modeled depth range.",
+                "Posterior confidence metrics describe concentration and agreement of the computed posterior, not empirical estimation accuracy."
+            ]
         }
