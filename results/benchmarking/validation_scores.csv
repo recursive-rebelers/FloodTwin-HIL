@@ -1,0 +1,2 @@
+validation_evidence_score,validation_evidence_label,dataset_coverage,environment_coverage,fault_coverage,benchmark_breadth,predictive_accuracy,uncertainty_calibration,statistical_evidence,validation_stability,hazard_validation
+0.7179880950446773,Strong,0.5727833333333333,0.38617816575,1.0,1.0,0.8233251559640736,0.7808553276224302,0.8908410741853271,0.0,0.9195606689641916
