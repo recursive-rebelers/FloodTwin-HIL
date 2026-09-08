@@ -26,6 +26,8 @@ SUMMARY_FILE = RESULTS_DIR / "robustness_summary.csv"
 DEPTH_MIN_CM = 0.0
 DEPTH_MAX_CM = 30.0
 DEPTH_RESOLUTION = 300
+CALIBRATION_FRACTION = 0.20
+CALIBRATION_RANDOM_SEED = 42
 
 ADAPTIVE_CALIBRATION = {
     "gamma": 1.75,
@@ -65,12 +67,6 @@ def _resolve_column(df: pd.DataFrame, candidates: Sequence[str], label: str) -> 
         if col in df.columns:
             return col
     raise ValueError(f"Missing required column for '{label}'. Expected one of: {list(candidates)}")
-
-def _choose_column(df: pd.DataFrame, candidates: Sequence[str]) -> Optional[str]:
-    for col in candidates:
-        if col in df.columns:
-            return col
-    return None
 
 def _safe_array(values: Any) -> np.ndarray:
     return np.asarray(values, dtype=float)
@@ -126,36 +122,46 @@ def _resolve_measurements(df: pd.DataFrame) -> Tuple[np.ndarray, np.ndarray, np.
     z_radar = pd.to_numeric(df[radar_col], errors="coerce").to_numpy(dtype=float)
     return z_lidar, z_ultra, z_radar
 
-def _robust_row_mad(obs: np.ndarray) -> np.ndarray:
-    obs = np.asarray(obs, dtype=float)
-    row_median = np.nanmedian(obs, axis=1)
-    row_median = np.nan_to_num(row_median, nan=0.0, posinf=0.0, neginf=0.0)
-    abs_dev = np.abs(obs - row_median[:, None])
-    mad = np.nanmedian(abs_dev, axis=1)
-    mad = np.nan_to_num(mad, nan=0.0, posinf=0.0, neginf=0.0)
-    return 1.4826 * mad
-
 def _compute_measurement_spread(z_lidar: np.ndarray, z_ultra: np.ndarray, z_radar: np.ndarray) -> np.ndarray:
     obs = np.column_stack([z_lidar, z_ultra, z_radar]).astype(float)
-    return _robust_row_mad(obs)
+    spread = np.zeros(obs.shape[0], dtype=float)
+
+    for i in range(obs.shape[0]):
+        valid = obs[i, np.isfinite(obs[i])]
+        if valid.size < 2:
+            spread[i] = 0.0
+            continue
+        if valid.size == 2:
+            spread[i] = 0.5 * abs(valid[0] - valid[1])
+            continue
+
+        median = np.median(valid)
+        mad = np.median(np.abs(valid - median))
+        spread[i] = 1.4826 * mad
+    return np.nan_to_num(spread, nan=0.0, posinf=0.0, neginf=0.0)
 
 def _compute_sensor_agreement(z_lidar: np.ndarray, z_ultra: np.ndarray, z_radar: np.ndarray) -> np.ndarray:
     obs = np.column_stack([z_lidar, z_ultra, z_radar]).astype(float)
-    row_median = np.nanmedian(obs, axis=1)
-    row_median = np.nan_to_num(row_median, nan=0.0, posinf=0.0, neginf=0.0)
-    obs = np.where(np.isfinite(obs), obs, row_median[:, None])
+    agreement = np.ones(obs.shape[0], dtype=float)
 
-    # Robust per-sample scale derived from the sensor disagreement around the median
-    mad = np.nanmedian(np.abs(obs - row_median[:, None]), axis=1)
-    scale = np.maximum(1.4826 * np.nan_to_num(mad, nan=0.0, posinf=0.0, neginf=0.0), 0.35)
+    for i in range(obs.shape[0]):
+        valid = obs[i, np.isfinite(obs[i])]
+        if valid.size < 2:
+            agreement[i] = 1.0
+            continue
 
-    pairwise_mean = (
-        np.abs(obs[:, 0] - obs[:, 1])
-        + np.abs(obs[:, 0] - obs[:, 2])
-        + np.abs(obs[:, 1] - obs[:, 2])) / 3.0
+        median = np.median(valid)
+        mad = np.median(np.abs(valid - median))
+        scale = max(1.4826 * mad, 0.35)
+        pairwise_differences = []
 
-    agreement = np.exp(-0.25 * np.square(pairwise_mean / scale))
-    return np.clip(agreement, 0.0, 1.0)
+        for a in range(valid.size):
+            for b in range(a + 1, valid.size):
+                pairwise_differences.append(abs(valid[a] - valid[b]))
+
+        pairwise_mean = float(np.mean(pairwise_differences))
+        agreement[i] = np.exp(-0.25 * np.square(pairwise_mean / scale))
+    return np.clip(np.nan_to_num(agreement, nan=1.0, posinf=1.0, neginf=0.0), 0.0, 1.0)
 
 def _compute_clutter_proxy(df: pd.DataFrame, water_depth: pd.Series, ntu: pd.Series,
     measurement_spread: np.ndarray) -> pd.Series:
@@ -184,30 +190,52 @@ def _compute_clutter_proxy(df: pd.DataFrame, water_depth: pd.Series, ntu: pd.Ser
     clutter = np.clip(clutter, 0.0, 1.0)
     return pd.Series(clutter, index=df.index, name="clutter_proxy")
 
-def _compute_reliability_context(
-    r_lidar: np.ndarray,
-    r_ultra: np.ndarray,
-    r_radar: np.ndarray,
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+def _compute_reliability_context(r_lidar: np.ndarray, r_ultra: np.ndarray, r_radar: np.ndarray, z_lidar: np.ndarray, z_ultra:
+    np.ndarray, z_radar: np.ndarray) -> Tuple[ np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
 
     reliabilities = np.column_stack([r_lidar, r_ultra, r_radar]).astype(float)
-    reliabilities = np.clip(np.nan_to_num(reliabilities, nan=0.0, posinf=1.0, neginf=0.0), 1e-6, 1.0)
+    measurements = np.column_stack([z_lidar, z_ultra, z_radar]).astype(float)
+    reliabilities = np.nan_to_num(reliabilities, nan=0.0, posinf=1.0, neginf=0.0)
+    reliabilities = np.clip(reliabilities, 0.0, 1.0)
 
-    spread = np.max(reliabilities, axis=1) - np.min(reliabilities, axis=1)
-    weights = reliabilities / np.sum(reliabilities, axis=1, keepdims=True)
+    active_mask = (np.isfinite(measurements) & (reliabilities > 0.0))
+    active_count = np.sum(active_mask, axis=1,)
+    active_reliability = np.where(active_mask, reliabilities, 0.0)
 
-    denom = np.sum(np.square(weights), axis=1)
-    effective_sensor_count = np.where(denom > 1e-12, 1.0 / denom, 3.0)
+    active_max = np.max(np.where(active_mask, active_reliability, -np.inf), axis=1)
+    active_min = np.min(np.where(active_mask, active_reliability, np.inf), axis=1)
+    reliability_spread = np.where(active_count >= 2, active_max - active_min, 0.0)
 
-    dominant_val = np.max(weights, axis=1)
-    other_mean = (np.sum(weights, axis=1) - dominant_val) / 2.0
-    dominance_ratio = dominant_val / (other_mean + 1e-12)
+    reliability_sum = np.sum(active_reliability, axis=1, keepdims=True,)
+    weights = np.divide(active_reliability, reliability_sum, out=np.zeros_like(active_reliability), where=reliability_sum > 1e-12)
 
-    entropy = -np.sum(weights * np.log(np.clip(weights, 1e-12, 1.0)), axis=1)
-    normalized_entropy = np.clip(entropy / np.log(3.0), 0.0, 1.0)
-    mean_reliability = np.mean(reliabilities, axis=1)
+    weight_square_sum = np.sum(np.square(weights), axis=1)
+    effective_sensor_count = np.divide(1.0, weight_square_sum, out=np.zeros_like(weight_square_sum),
+    where=weight_square_sum > 1e-12)
+
+    dominant_weight = np.max(weights, axis=1)
+    remaining_weight = np.maximum(np.sum(weights, axis=1) - dominant_weight, 0.0)
+
+    other_sensor_count = np.maximum(active_count - 1, 1)
+    other_mean_weight = np.divide(remaining_weight, other_sensor_count, out=np.zeros_like(remaining_weight),
+    where=other_sensor_count > 0)
+    dominance_ratio = np.where(active_count >= 2, dominant_weight / (other_mean_weight + 1e-12), 1.0)
+
+    safe_weights = np.clip(weights, 1e-12, 1.0)
+    entropy = -np.sum(np.where(weights > 0.0, weights * np.log(safe_weights), 0.0), axis=1)
+    entropy_denominator = np.log(np.maximum(active_count, 2))
+    normalized_entropy = np.divide(entropy, entropy_denominator, out=np.zeros_like(entropy), where=active_count >= 2)
+    normalized_entropy = np.clip(normalized_entropy, 0.0, 1.0)
+
+    reliability_total = np.sum(active_reliability, axis=1)
+    mean_reliability = np.divide(reliability_total, active_count, out=np.zeros_like(reliability_total), where=active_count > 0)
     confidence = np.clip(mean_reliability * (0.60 + 0.40 * (1.0 - normalized_entropy)), 0.0, 1.0)
-    return spread, effective_sensor_count, dominance_ratio, confidence
+
+    return (
+        np.nan_to_num(reliability_spread, nan=0.0, posinf=0.0, neginf=0.0),
+        np.nan_to_num(effective_sensor_count, nan=0.0, posinf=0.0, neginf=0.0),
+        np.nan_to_num(dominance_ratio, nan=1.0, posinf=1.0, neginf=1.0),
+        np.nan_to_num(confidence, nan=0.0, posinf=1.0, neginf=0.0))
 
 def _build_context_bundle(
     df: pd.DataFrame,
@@ -226,7 +254,7 @@ def _build_context_bundle(
     clutter_proxy = _compute_clutter_proxy(df, water_depth, ntu, measurement_spread)
     scene_complexity = _compute_scene_complexity(df, water_depth, ntu, clutter_proxy, measurement_spread)
     reliability_spread, effective_sensor_count, dominance_ratio, confidence_proxy = _compute_reliability_context(
-        r_lidar, r_ultra, r_radar)
+        r_lidar, r_ultra, r_radar, z_lidar, z_ultra, z_radar)
 
     return {
         "scene_complexity": scene_complexity,
@@ -414,22 +442,15 @@ def _apply_sensor_fault_plan(
 
     for fault in dropout_faults:
         severity = str(fault.get("severity", "low")).lower().strip()
-
-        faulted_measurements, dropout_mask = injectors["dropout"].inject(
-            faulted_measurements, severity=severity, return_mask=True)
-
-        dropout_effect = fault_effects.apply_fault(
-            sensor=sensor_name, fault_type="dropout", severity=severity, reliability=1.0, sigma=1.0)
-
+        faulted_measurements, dropout_mask = (
+            injectors["dropout"].inject(faulted_measurements, severity=severity, return_mask=True))
         if np.any(dropout_mask):
-            faulted_measurements[dropout_mask] = np.nan
             faulted_reliability[dropout_mask] = 0.0
-            dropout_sigma = float(dropout_effect.get("sigma", 3.0))
-            faulted_sigma[dropout_mask] = np.maximum(faulted_sigma[dropout_mask], dropout_sigma)
 
-    faulted_reliability = np.clip(faulted_reliability, 0.02, 1.0)
+    valid_measurement_mask = np.isfinite(faulted_measurements)
+    faulted_reliability = np.where(valid_measurement_mask, np.clip(faulted_reliability, 0.0, 1.0), 0.0)
     faulted_sigma = np.clip(faulted_sigma, 1e-6, None)
-    return faulted_measurements, faulted_reliability, faulted_sigma
+    return (faulted_measurements, faulted_reliability, faulted_sigma)
 
 def _fixed_fusion_estimate(
     measurements: Sequence[float],
@@ -755,11 +776,7 @@ def _evaluate_stream_set(
     best_single_rmse = _safe_rmse(best_single_errors_arr)
     fixed_rmse = _safe_rmse(fixed_errors_arr)
     adaptive_rmse = _safe_rmse(adaptive_errors_arr)
-
     single_failure_rate = _safe_rate(single_failures)
-    best_single_failure_rate = _safe_rate(best_single_failures)
-    fixed_failure_rate = _safe_rate(fixed_failures)
-    adaptive_failure_rate = _safe_rate(adaptive_failures)
 
     adaptive_gain = np.nan
     adaptive_vs_single_gain = np.nan
@@ -778,13 +795,10 @@ def _evaluate_stream_set(
         "Experiment": exp_name,
         "Samples": len(base_df),
         "Single_RMSE_cm": single_rmse,
-        "Best_Single_RMSE_cm": best_single_rmse,
+        "Oracle_Best_Single_RMSE_cm": best_single_rmse,
         "Fixed_RMSE_cm": fixed_rmse,
         "Adaptive_RMSE_cm": adaptive_rmse,
         "Single_Failure_Rate_%": single_failure_rate,
-        "Best_Single_Failure_Rate_%": best_single_failure_rate,
-        "Fixed_Failure_Rate_%": fixed_failure_rate,
-        "Adaptive_Failure_Rate_%": adaptive_failure_rate,
         "Adaptive_Gain_%": adaptive_gain,
         "Adaptive_Gain_vs_Single_%": adaptive_vs_single_gain,
         "Single_Degradation_%": np.nan,
@@ -807,8 +821,10 @@ def _evaluate_stream_set(
         "Mean_Sigma_Lidar": _safe_mean(adaptive_sigmas_l),
         "Mean_Sigma_Ultrasonic": _safe_mean(adaptive_sigmas_u),
         "Mean_Sigma_Radar": _safe_mean(adaptive_sigmas_r),
-        "Fixed_Hazard_Hit_Rate_%": _safe_rate(np.asarray(fixed_hazard_statuses, dtype=object) == "HAZARD"),
-        "Adaptive_Hazard_Hit_Rate_%": _safe_rate(np.asarray(adaptive_hazard_statuses, dtype=object) == "HAZARD"),
+        "Fixed_Predicted_Hazard_Rate_%": _safe_rate(
+            np.asarray(fixed_hazard_statuses, dtype=object) == "HAZARD"),
+        "Adaptive_Predicted_Hazard_Rate_%": _safe_rate(
+            np.asarray(adaptive_hazard_statuses, dtype=object) == "HAZARD"),
         "Mean_Context_Difficulty": _safe_mean(context_difficulties),
         "Mean_Adaptation_Gate": _safe_mean(adaptation_gates),
         "Mean_Measurement_Consistency": _safe_mean(measurement_consistencies),
@@ -816,35 +832,55 @@ def _evaluate_stream_set(
         "Mean_Weight_Entropy": _safe_mean(weight_entropies),
     }
 
+def _split_calibration_evaluation(df: pd.DataFrame, calibration_fraction: float = CALIBRATION_FRACTION,
+    random_seed: int = CALIBRATION_RANDOM_SEED) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    if not 0.0 < calibration_fraction < 1.0:
+        raise ValueError("calibration_fraction must be between 0 and 1")
+
+    rng = np.random.default_rng(random_seed)
+    indices = np.arange(len(df))
+    rng.shuffle(indices)
+    n_calibration = int(round(len(df) * calibration_fraction))
+    if n_calibration <= 0 or n_calibration >= len(df):
+        raise ValueError("Calibration split must leave samples for both calibration and evaluation")
+
+    calibration_indices = indices[:n_calibration]
+    evaluation_indices = indices[n_calibration:]
+    calibration_df = (df.iloc[calibration_indices].copy().reset_index(drop=True))
+    evaluation_df = (df.iloc[evaluation_indices].copy().reset_index(drop=True))
+    return calibration_df, evaluation_df
+
 def evaluate_robustness(dataset_path: Path = DATASET_FILE_IN, verbose: bool = True):
     if not dataset_path.exists():
         raise FileNotFoundError(f"{dataset_path} not found. Run fusion evaluation first")
+    full_df = pd.read_csv(dataset_path).copy()
 
-    df = pd.read_csv(dataset_path).copy()
+    _resolve_column(full_df, REQUIRED_CANDIDATES["scenario_id"], "scenario_id")
+    truth_col = _resolve_column(full_df, REQUIRED_CANDIDATES["true_depth"],  "true_depth")
 
-    _resolve_column(df, REQUIRED_CANDIDATES["scenario_id"], "scenario_id")
-    truth_col = _resolve_column(df, REQUIRED_CANDIDATES["true_depth"], "true_depth")
-    r_lidar_col = _resolve_column(df, REQUIRED_CANDIDATES["r_lidar"], "r_lidar")
-    r_ultra_col = _resolve_column(df, REQUIRED_CANDIDATES["r_ultra"], "r_ultra")
-    r_radar_col = _resolve_column(df, REQUIRED_CANDIDATES["r_radar"], "r_radar")
-    _resolve_column(df, REQUIRED_CANDIDATES["water_depth"], "water_depth")
-    _resolve_column(df, REQUIRED_CANDIDATES["ntu"], "ntu")
+    r_lidar_col = _resolve_column(full_df, REQUIRED_CANDIDATES["r_lidar"], "r_lidar")
+    r_ultra_col = _resolve_column(full_df, REQUIRED_CANDIDATES["r_ultra"], "r_ultra")
+    r_radar_col = _resolve_column(full_df, REQUIRED_CANDIDATES["r_radar"], "r_radar")
 
-    true_depth = df[truth_col].to_numpy(dtype=float)
+    _resolve_column(full_df, REQUIRED_CANDIDATES["water_depth"], "water_depth")
+    _resolve_column(full_df, REQUIRED_CANDIDATES["ntu"], "ntu")
+
+    calibration_df, df = _split_calibration_evaluation(full_df)
+    calibration_truth = pd.to_numeric(calibration_df[truth_col], errors="coerce").to_numpy(dtype=float)
+    cal_z_lidar, cal_z_ultra, cal_z_radar = _resolve_measurements(calibration_df)
+    fixed_sigmas = derive_fixed_sigmas(calibration_df, calibration_truth, cal_z_lidar, cal_z_ultra, cal_z_radar)
+
+    true_depth = pd.to_numeric(df[truth_col], errors="coerce").to_numpy(dtype=float)
     z_lidar, z_ultra, z_radar = _resolve_measurements(df)
-
-    r_lidar = df[r_lidar_col].to_numpy(dtype=float)
-    r_ultra = df[r_ultra_col].to_numpy(dtype=float)
-    r_radar = df[r_radar_col].to_numpy(dtype=float)
+    r_lidar = pd.to_numeric(df[r_lidar_col], errors="coerce").to_numpy(dtype=float)
+    r_ultra = pd.to_numeric(df[r_ultra_col], errors="coerce").to_numpy(dtype=float)
+    r_radar = pd.to_numeric(df[r_radar_col], errors="coerce").to_numpy(dtype=float)
 
     base_streams = {
         "lidar": z_lidar.copy(),
         "ultra": z_ultra.copy(),
         "radar": z_radar.copy(),
     }
-
-    # Baseline sigma is learned from residual dispersion on the observed dataset
-    fixed_sigmas = derive_fixed_sigmas(df, true_depth, z_lidar, z_ultra, z_radar)
 
     # Fault-aware sigma seed before contextual expansion
     sigma_lidar, sigma_ultra, sigma_radar = _sensor_sigmas(r_lidar, r_ultra, r_radar)
@@ -969,47 +1005,49 @@ def evaluate_robustness(dataset_path: Path = DATASET_FILE_IN, verbose: bool = Tr
         rows.append(row)
 
     results_df = pd.DataFrame(rows)
-
     baseline_mask = results_df["Experiment"] == "Baseline (No Faults)"
+
     if not baseline_mask.any():
         raise RuntimeError("Baseline experiment was not generated")
-
     baseline_row = results_df.loc[baseline_mask].iloc[0]
 
     results_df["Fixed_Degradation_%"] = (
-        (results_df["Fixed_RMSE_cm"] - baseline_row["Fixed_RMSE_cm"])
-        / max(float(baseline_row["Fixed_RMSE_cm"]), 1e-12)
-    ) * 100.0
+        (results_df["Fixed_RMSE_cm"] - baseline_row["Fixed_RMSE_cm"]) / max(
+            float(baseline_row["Fixed_RMSE_cm"]), 1e-12)) * 100.0
+
     results_df["Adaptive_Degradation_%"] = (
-        (results_df["Adaptive_RMSE_cm"] - baseline_row["Adaptive_RMSE_cm"])
-        / max(float(baseline_row["Adaptive_RMSE_cm"]), 1e-12)
-    ) * 100.0
+        (results_df["Adaptive_RMSE_cm"] - baseline_row["Adaptive_RMSE_cm"]) / max(
+            float(baseline_row["Adaptive_RMSE_cm"]), 1e-12)) * 100.0
+
     results_df["Single_Degradation_%"] = (
-        (results_df["Single_RMSE_cm"] - baseline_row["Single_RMSE_cm"])
-        / max(float(baseline_row["Single_RMSE_cm"]), 1e-12)
-    ) * 100.0
-    results_df["Best_Single_Degradation_%"] = (
-        (results_df["Best_Single_RMSE_cm"] - baseline_row["Best_Single_RMSE_cm"])
-        / max(float(baseline_row["Best_Single_RMSE_cm"]), 1e-12)
-    ) * 100.0
+        (results_df["Single_RMSE_cm"] - baseline_row["Single_RMSE_cm"]) / max(
+            float(baseline_row["Single_RMSE_cm"]), 1e-12)) * 100.0
+
+    results_df["Oracle_Best_Single_Degradation_%"] = (
+        (results_df["Oracle_Best_Single_RMSE_cm"] - baseline_row["Oracle_Best_Single_RMSE_cm"]) / max(
+            float(baseline_row["Oracle_Best_Single_RMSE_cm"]), 1e-12)) * 100.0
 
     results_df.to_csv(ROBUSTNESS_RESULTS_FILE, index=False)
 
     summary = {
-        "samples": int(len(df)),
+        "total_dataset_samples": int(len(full_df)),
         "experiments": int(len(results_df)),
+        "calibration_samples": int(len(calibration_df)),
+        "evaluation_samples": int(len(df)),
+        "calibration_fraction": float(CALIBRATION_FRACTION),
+        "calibration_random_seed": int(CALIBRATION_RANDOM_SEED),
+        "calibrated_fixed_sigma_lidar_cm": float(fixed_sigmas[0]),
+        "calibrated_fixed_sigma_ultrasonic_cm": float(fixed_sigmas[1]),
+        "calibrated_fixed_sigma_radar_cm": float(fixed_sigmas[2]),
         "baseline_single_rmse_cm": float(baseline_row["Single_RMSE_cm"]),
-        "baseline_best_single_rmse_cm": float(baseline_row["Best_Single_RMSE_cm"]),
+        "baseline_oracle_best_single_rmse_cm": float(baseline_row["Oracle_Best_Single_RMSE_cm"]),
         "baseline_fixed_rmse_cm": float(baseline_row["Fixed_RMSE_cm"]),
         "baseline_adaptive_rmse_cm": float(baseline_row["Adaptive_RMSE_cm"]),
         "mean_single_rmse_cm": _safe_mean(results_df["Single_RMSE_cm"]),
-        "mean_best_single_rmse_cm": _safe_mean(results_df["Best_Single_RMSE_cm"]),
+        "mean_oracle_best_single_rmse_cm": _safe_mean(results_df["Oracle_Best_Single_RMSE_cm"]),
         "mean_fixed_rmse_cm": _safe_mean(results_df["Fixed_RMSE_cm"]),
         "mean_adaptive_rmse_cm": _safe_mean(results_df["Adaptive_RMSE_cm"]),
         "mean_single_failure_rate_%": _safe_mean(results_df["Single_Failure_Rate_%"]),
-        "mean_best_single_failure_rate_%": _safe_mean(results_df["Best_Single_Failure_Rate_%"]),
-        "mean_fixed_failure_rate_%": _safe_mean(results_df["Fixed_Failure_Rate_%"]),
-        "mean_adaptive_failure_rate_%": _safe_mean(results_df["Adaptive_Failure_Rate_%"]),
         "mean_adaptive_gain_%": _safe_mean(results_df["Adaptive_Gain_%"]),
         "mean_adaptive_gain_vs_single_%": _safe_mean(results_df["Adaptive_Gain_vs_Single_%"]),
         "mean_adaptive_win_rate_%": _safe_mean(results_df["Adaptive_Win_Rate_%"]),
@@ -1029,11 +1067,12 @@ def evaluate_robustness(dataset_path: Path = DATASET_FILE_IN, verbose: bool = Tr
         "mean_sigma_lidar": _safe_mean(results_df["Mean_Sigma_Lidar"]),
         "mean_sigma_ultrasonic": _safe_mean(results_df["Mean_Sigma_Ultrasonic"]),
         "mean_sigma_radar": _safe_mean(results_df["Mean_Sigma_Radar"]),
-        "mean_fixed_hazard_hit_rate_%": _safe_mean(results_df["Fixed_Hazard_Hit_Rate_%"]),
-        "mean_adaptive_hazard_hit_rate_%": _safe_mean(results_df["Adaptive_Hazard_Hit_Rate_%"]),
+        "mean_fixed_hazard_rate_%": _safe_mean(results_df["Fixed_Predicted_Hazard_Rate_%"]),
+        "mean_adaptive_hazard_rate_%": _safe_mean(results_df["Adaptive_Predicted_Hazard_Rate_%"]),
         "max_fixed_degradation_%": float(results_df["Fixed_Degradation_%"].max()),
         "max_adaptive_degradation_%": float(results_df["Adaptive_Degradation_%"].max()),
-        "max_best_single_degradation_%": float(results_df["Best_Single_Degradation_%"].max()),
+        "max_oracle_best_single_degradation_%": float(results_df[
+            "Oracle_Best_Single_Degradation_%"].max()),
         "baseline_scene_complexity": float(np.mean(clean_context_bundle["scene_complexity"])),
         "baseline_sensor_agreement": float(np.mean(clean_context_bundle["sensor_agreement"])),
         "baseline_measurement_spread": float(np.mean(clean_context_bundle["measurement_spread"])),
@@ -1060,13 +1099,10 @@ def evaluate_robustness(dataset_path: Path = DATASET_FILE_IN, verbose: bool = Tr
         columns_to_show = [
             "Experiment",
             "Single_RMSE_cm",
-            "Best_Single_RMSE_cm",
+            "Oracle_Best_Single_RMSE_cm",
             "Fixed_RMSE_cm",
             "Adaptive_RMSE_cm",
             "Single_Failure_Rate_%",
-            "Best_Single_Failure_Rate_%",
-            "Fixed_Failure_Rate_%",
-            "Adaptive_Failure_Rate_%",
             "Adaptive_Gain_%",
             "Adaptive_Win_Rate_%",
         ]

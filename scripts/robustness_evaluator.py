@@ -28,7 +28,7 @@ LABEL_MAP = {
     "Ultrasonic High Dropout (50%)": "Ultra\nDrop 50%",
     "Radar High Dropout (50%)": "Radar\nDrop 50%",
     "Radar Severe Noise": "Radar\nNoise",
-    "Ultrasonic High Delay": "Ultra\nDelay",
+    "Ultrasonic High Delay": "Ultrasonic\nDelay",
     "Radar High Sync Error": "Radar\nSync",
     "Compound Scenario A": "Comp A",
     "Compound Scenario C": "Comp C" }
@@ -39,8 +39,6 @@ REQUIRED_COLUMNS = [
     "Adaptive_RMSE_cm",
     "Fixed_Degradation_%",
     "Adaptive_Degradation_%",
-    "Fixed_Failure_Rate_%",
-    "Adaptive_Failure_Rate_%",
     "Mean_Fixed_Confidence",
     "Mean_Adaptive_Confidence" ]
 
@@ -61,8 +59,8 @@ def _apply_publication_style():
         "grid.linestyle": "--",
         "axes.titleweight": "bold",
         "axes.labelweight": "bold",
-        "axes.titlesize": 18,
-        "axes.labelsize": 14
+        "axes.titlesize": 14,
+        "axes.labelsize": 12
     })
 
 def _prepare_ordered_frame(df, order):
@@ -186,7 +184,7 @@ def generate_robustness_figures(results_path=RESULTS_FILE):
     ax.set_title("Adaptive vs Fixed Fusion Under Dropout Faults")
     ax.set_ylabel("RMSE (cm)", labelpad=12)
     ax.set_xticks(x_vals)
-    ax.set_xticklabels(dropout_df["__label__"], rotation=0, fontsize=15)
+    ax.set_xticklabels(dropout_df["__label__"], rotation=0, fontsize=14)
     ax.set_ylim(0, max(
         dropout_df["Fixed_RMSE_cm"].max(),
         dropout_df["Adaptive_RMSE_cm"].max()) * 1.20)
@@ -221,7 +219,7 @@ def generate_robustness_figures(results_path=RESULTS_FILE):
     ax.set_title("Worst-Case Compound Fault Stress Test")
     ax.set_xlabel("RMSE (cm)", labelpad=12)
     ax.set_yticks(y_vals)
-    ax.set_yticklabels(compound_df["__label__"])
+    ax.set_yticklabels(compound_df["__label__"], fontsize=14)
     ax.set_xlim(0, max(
             compound_df["Fixed_RMSE_cm"].max(),
             compound_df["Adaptive_RMSE_cm"].max()) * 1.20)
