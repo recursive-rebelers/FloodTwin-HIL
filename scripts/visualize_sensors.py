@@ -22,8 +22,8 @@ plt.rcParams.update({
     "grid.linestyle": "--",
     "axes.titleweight": "bold",
     "axes.labelweight": "bold",
-    "axes.titlesize": 18,
-    "axes.labelsize": 14
+    "axes.titlesize": 14,
+    "axes.labelsize": 12
 })
 
 def _pearson_r(x, y):
@@ -63,23 +63,22 @@ def _add_metrics_box(ax, x, y, x_name, y_name):
         f"n = {n:,}\n"
         f"Pearson r = {r:.3f}\n"
         f"R² = {r2:.3f}\n"
-        f"Slope = {m:.4f} {y_name}/{x_name}\n"
+        f"Slope = {m:.4f}\n"
         f"Mean = {mean_v:.3f}\n"
         f"Std = {std_v:.3f}\n"
         f"Median = {median_v:.3f}\n"
         f"P95 = {p95_v:.3f}")
 
-    ax.text(0.035, 0.95,
+    ax.text(0.025, 0.96,
         box_text,
         transform=ax.transAxes,
         va="top", ha="left",
         fontsize=9,
         bbox=dict(
-            boxstyle="round,pad=0.45",
+            boxstyle="round, pad=0.50",
             facecolor="white",
-            edgecolor="#4a4a4a",
-            alpha=0.93),
-        family="monospace")
+            edgecolor="#8f8f8f",
+            alpha=0.90))
 
 ####################################################
 # FIGURE 1: LiDAR Error Under Increasing Turbidity

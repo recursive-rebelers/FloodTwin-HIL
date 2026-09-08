@@ -8,11 +8,11 @@ sys.path.insert(0, str(BASE_DIR))
 from digital_twin.lidar_model import LidarModel
 from digital_twin.ultrasonic_model import UltrasonicModel
 from digital_twin.radar_model import RadarModel
-from digital_twin.imu_model import generate_mpu6050_metrics
+from digital_twin.imu_model import IMUModel
 from digital_twin.turbidity_model import TurbidityModel
 from digital_twin.water_contact_model import FSIR01Model
 
-SCENARIO_FILE = BASE_DIR / "scenarios" / "scenario_registry.csv"
+SCENARIO_FILE = BASE_DIR / "datasets" / "scenario_registry.csv"
 DATASET_FILE = BASE_DIR / "datasets" / "dataset_v1.csv"
 
 RESULTS_DIR = BASE_DIR / "results" / "digital_twin"
@@ -55,7 +55,7 @@ def run_pipeline():
         lidar_data = lidar.generate(true_depth, water_depth, ntu)
         ultrasonic_data = ultrasonic.generate(true_depth, water_depth)
         radar_data = radar.generate(true_depth, water_depth, ntu)
-        imu_data = generate_mpu6050_metrics(road_type, road_environment, speed, true_depth, water_depth)
+        imu_data = IMUModel(road_type, road_environment, speed, true_depth, water_depth)
         water_data = water_sensor.detect(water_depth)
         ultrasonic_error = round(float(ultrasonic_data["distance"] - true_depth), 3)
 
