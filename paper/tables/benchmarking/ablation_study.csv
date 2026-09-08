@@ -1,0 +1,8 @@
+Architecture Variant,Samples,Mean Absolute Error (cm),Maximum Error (cm),Error Std. Dev. (cm),Degradation vs Proposed (%)
+A — All Sensors (Proposed),5000,0.134,2.216,0.154,0.0
+B — No LiDAR,5000,0.173,1.755,0.223,28.923
+C — No Radar,5000,0.334,3.716,0.483,149.051
+D — No Ultrasonic,5000,0.155,1.187,0.139,15.329
+E — No Reliability Weighting,5000,0.17,2.015,0.205,26.664
+F — No Context Adaptation,5000,0.136,2.316,0.16,1.517
+G — No Adaptive Fusion (Fixed),5000,0.19,1.847,0.234,41.465

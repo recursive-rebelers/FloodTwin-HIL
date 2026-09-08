@@ -1,0 +1,3 @@
+Comparison,n,Mean Error Reduction (cm),Improvement (%),Hedges' g,Holm-Adjusted p,Bootstrap 95% CI (cm),Holm Significant
+Adaptive vs Fixed,30000,0.0553,29.07,0.335,<1e-300,"[0.0535, 0.0572]",True
+Adaptive vs LiDAR-only,30000,0.2771,67.25,0.766,<1e-300,"[0.2731, 0.2812]",True

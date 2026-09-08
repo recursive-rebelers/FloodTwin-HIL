@@ -1,0 +1,10 @@
+Evaluation Dimension,Score (0–1),Assessment
+Dataset Coverage,0.573,Moderate
+Environment Coverage,0.386,Weak
+Fault Coverage,1.0,Excellent
+Benchmark Breadth,1.0,Excellent
+Predictive Accuracy,0.823,Strong
+Uncertainty Calibration,0.781,Strong
+Statistical Evidence,0.891,Excellent
+Hazard Validation,0.92,Excellent
+OVERALL VALIDATION EVIDENCE,0.718,Strong
