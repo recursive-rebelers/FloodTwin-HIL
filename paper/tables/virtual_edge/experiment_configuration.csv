@@ -1,0 +1,11 @@
+experiment,source_mode,profile_name,input_rows,used_rows,unique_scenarios
+baseline_dataset,dataset,baseline_dataset,30000,30000,30000
+baseline_registry,registry,baseline_registry,30000,30000,30000
+complex_environment,dataset,complex_environment,11179,11179,11179
+compound_fault,dataset,compound_fault,30000,30000,30000
+flood_severity,dataset,flood_severity,10049,10049,10049
+high_speed,dataset,high_speed,10227,10227,10227
+muddy_water,dataset,muddy_water,11005,11005,11005
+sensor_failure,dataset,sensor_failure,30000,30000,30000
+stress_test,dataset,stress_test,30000,30000,30000
+uncertainty_analysis,dataset,uncertainty_analysis,30000,30000,30000
