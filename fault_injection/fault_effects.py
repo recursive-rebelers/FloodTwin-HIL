@@ -29,8 +29,8 @@ class FaultEffects:
     FAULT_PROFILE = {
 
         "dropout": {
-            "reliability_alpha": 1.00,
-            "sigma_beta": 5.00
+            "reliability_alpha": 0.00,
+            "sigma_beta": 0.00
         },
 
         "noise": {
@@ -121,8 +121,6 @@ class FaultEffects:
         if fault_key == "dropout":
             loss = severity_value
             updated_availability = self._clip_availability(updated_availability * (1.0 - loss))
-            updated_reliability = self._clip_reliability(updated_reliability * (1.0 - loss))
-            updated_sigma = self._clip_sigma(updated_sigma * (1.0 + profile["sigma_beta"] * max(loss, 0.1)))
 
             return {
                 "sensor": sensor_key,
