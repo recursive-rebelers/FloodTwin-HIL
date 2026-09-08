@@ -45,8 +45,8 @@ plt.rcParams.update({
     "grid.linestyle": "--",
     "axes.titleweight": "bold",
     "axes.labelweight": "bold",
-    "axes.titlesize": 17,
-    "axes.labelsize": 13,
+    "axes.titlesize": 14,
+    "axes.labelsize": 12,
     "legend.fontsize": 10,
     "font.size": 11,
     "ps.fonttype": 42,
@@ -129,7 +129,10 @@ fusion = AdaptiveFusionEngine(core)
 scene_complexity = 0.18
 sensor_agreement = 0.91
 measurement_spread = 0.55
-sigmas = (1.25, 1.87, 0.77)
+sigmas = (
+    safe_float(summary_metrics.get("fixed_sigma_lidar", 0.85)),
+    safe_float(summary_metrics.get("fixed_sigma_ultrasonic", 0.75)),
+    safe_float(summary_metrics.get("fixed_sigma_radar", 0.60)))
 
 demo = fusion.fuse(
     z_lidar=DEMO_MEASUREMENTS["z_lidar"],
@@ -152,7 +155,7 @@ expected_depth = safe_float(demo["depth_mean"])
 variance = safe_float(demo["variance"])
 entropy = safe_float(demo["entropy"])
 weights = demo["weights"]
-sigmas = demo["sigmas"]
+adaptive_sigmas = demo["sigmas"]
 diagnostics = demo.get("diagnostics", {})
 posterior_peak = safe_float(diagnostics.get("posterior_peak", np.max(posterior_mass)))
 confidence = safe_float(demo.get("confidence", diagnostics.get("confidence", float("nan"))))
@@ -224,12 +227,12 @@ save_clean(fig, "fusion_posterior")
 # ---------------------------------------------------------------------
 # Figure 2: RMSE comparison across turbidity bins
 # ---------------------------------------------------------------------
-required_rmse_cols = {"ntu", "fixed_mae", "adaptive_mae"}
+required_rmse_cols = {"ntu_observed", "fixed_abs_error", "adaptive_abs_error"}
 missing_rmse_cols = required_rmse_cols - set(df.columns)
 if missing_rmse_cols:
     raise ValueError(f"Missing required columns for Figure 2: {sorted(missing_rmse_cols)}")
 
-df["ntu_bin"] = pd.cut(df["ntu"], bins=8, include_lowest=True)
+df["ntu_bin"] = pd.cut(df["ntu_observed"], bins=8, include_lowest=True)
 bin_intervals = df["ntu_bin"].cat.categories
 bin_labels = []
 
@@ -240,22 +243,26 @@ for interval in bin_intervals:
     bin_labels.append(f"{left}-{right}")
 
 rmse_fixed = (
-    df.groupby("ntu_bin", observed=True)["fixed_mae"]
+    df.groupby("ntu_bin", observed=True)["fixed_abs_error"]
     .apply(lambda x: float(np.sqrt(np.mean(np.square(np.asarray(x, dtype=float))))))
     .astype(float))
 
 rmse_adaptive = (
-    df.groupby("ntu_bin", observed=True)["adaptive_mae"]
+    df.groupby("ntu_bin", observed=True)["adaptive_abs_error"]
     .apply(lambda x: float(np.sqrt(np.mean(np.square(np.asarray(x, dtype=float))))))
     .astype(float))
 
-overall_fixed = summary_metrics["rmse_fixed_fusion"]
-overall_adaptive = summary_metrics["rmse_adaptive_fusion"]
+paired_mae_df = (df[["fixed_abs_error", "adaptive_abs_error"]]
+    .apply(pd.to_numeric, errors="coerce").dropna())
+
+overall_fixed = summary_metrics["rmse_fixed_fusion_map"]
+overall_adaptive = summary_metrics["rmse_adaptive_fusion_map"]
 gain_percent = ((overall_fixed - overall_adaptive) / max(overall_fixed, 1e-12)) * 100.0
-mae_fixed = float(df["fixed_mae"].mean())
-mae_adaptive = float(df["adaptive_mae"].mean())
+
+mae_fixed = float(paired_mae_df["fixed_abs_error"].mean())
+mae_adaptive = float(paired_mae_df["adaptive_abs_error"].mean())
 mae_gain_percent = ((mae_fixed - mae_adaptive) / max(mae_fixed, 1e-12)) * 100.0
-adaptive_win_rate = summary_metrics["adaptive_win_rate"]
+adaptive_win_rate = summary_metrics["adaptive_win_rate_map"]
 
 x = np.arange(len(rmse_fixed))
 fig, ax = plt.subplots(figsize=(8.4, 5.2))
@@ -291,11 +298,11 @@ rmse_text = (
     f"Fixed RMSE            {overall_fixed:.3f} cm\n"
     f"Adaptive RMSE       {overall_adaptive:.3f} cm\n"
     f"RMSE Gain             {gain_percent:.2f}%\n\n"
-    f"Fixed MAE              {df['fixed_mae'].mean():.3f} cm\n"
-    f"Adaptive MAE         {df['adaptive_mae'].mean():.3f} cm\n"
+    f"Fixed MAE              {mae_fixed:.3f} cm\n"
+    f"Adaptive MAE         {mae_adaptive:.3f} cm\n"
     f"MAE Gain               {mae_gain_percent:.2f}%\n\n"
     f"Adaptive Win Rate  {adaptive_win_rate:.3f}\n"
-    f"Mean Win Rate       {summary_metrics.get('adaptive_mean_win_rate', float('nan')):.3f}")
+    f"Mean Win Rate       {summary_metrics.get('adaptive_win_rate_mean', float('nan')):.3f}")
 
 ax.text(0.025, 0.965,
     rmse_text,
@@ -314,97 +321,11 @@ style_axes(ax)
 save_clean(fig, "rmse_comparison")
 
 # ---------------------------------------------------------------------
-# Figure 3: Confidence under flood severity
-# ---------------------------------------------------------------------
-required_conf_cols = {"water_depth", "adaptive_confidence", "adaptive_mae"}
-missing_conf_cols = required_conf_cols - set(df.columns)
-if missing_conf_cols:
-    raise ValueError(f"Missing required columns for Figure 3: {sorted(missing_conf_cols)}")
-
-corr_conf_mae = float(df[["adaptive_confidence", "adaptive_mae"]].corr().iloc[0, 1])
-fig, ax = plt.subplots(figsize=(8.4, 5.2))
-
-sns.scatterplot(
-    data=df,
-    x="water_depth",
-    y="adaptive_confidence",
-    s=18,
-    alpha=0.35,
-    color="#6a1b9a",
-    edgecolor=None,
-    ax=ax)
-
-sns.regplot(
-    data=df,
-    x="water_depth",
-    y="adaptive_confidence",
-    scatter=False,
-    lowess=True,
-    ci=95,
-    color="#2f0f59",
-    line_kws={"linewidth": 3.8},
-    ax=ax)
-
-mean_conf = float(df["adaptive_confidence"].mean())
-std_conf = float(df["adaptive_confidence"].std(ddof=1))
-median_conf = float(df["adaptive_confidence"].median())
-mean_entropy = float(df["adaptive_entropy"].mean()) if "adaptive_entropy" in df.columns else float("nan")
-mean_variance = float(df["adaptive_variance"].mean()) if "adaptive_variance" in df.columns else float("nan")
-mean_ci_width = float(df["adaptive_ci_width_95"].mean()) if "adaptive_ci_width_95" in df.columns else float("nan")
-
-ax.axhline(mean_conf,
-    color="#666666",
-    linestyle="--",
-    linewidth=1.6,
-    alpha=0.8,
-    label=f"Mean confidence = {mean_conf:.3f}")
-
-median_conf = df["adaptive_confidence"].median()
-ax.axhline(
-    median_conf,
-    color="gray",
-    linestyle=":",
-    linewidth=2,
-    alpha=0.8,
-    label=f"Median confidence = {median_conf:.3f}")
-
-ax.set_title("Adaptive Bayesian Confidence Across Flood Depth")
-ax.set_xlabel("Flood Depth (cm)", labelpad=12)
-ax.set_ylabel("Posterior Confidence", labelpad=12)
-ax.set_ylim(0.65, 1.02)
-
-confidence_text = (
-    f"Mean Confidence     {mean_conf:.3f}\n"
-    f"Median Confidence  {median_conf:.3f}\n"
-    f"Std. Confidence       {std_conf:.3f}\n"
-    f"Corr(conf, MAE)      {corr_conf_mae:.3f}\n"
-    f"Mean Entropy            {mean_entropy:.2f}\n"
-    f"Mean Variance           {mean_variance:.2f}\n"
-    f"Mean Ci Width           {mean_ci_width:.2f}\n"
-    f"Samples                 {len(df):,}")
-
-ax.text(0.025, 0.965,
-    confidence_text,
-    transform=ax.transAxes,
-    ha="left",
-    va="top",
-    fontsize=9.7,
-    bbox=dict(
-        boxstyle="round,pad=0.35",
-        facecolor="white",
-        edgecolor="#d0d0d0",
-        alpha=0.96))
-
-ax.legend(loc="upper right", frameon=True, framealpha=0.96)
-style_axes(ax)
-save_clean(fig, "confidence_analysis")
-
-# ---------------------------------------------------------------------
-# Figure 4: Hazard probability assessment
+# Figure 3: Hazard probability assessment
 # ---------------------------------------------------------------------
 hazard_column = "hazard_probability" if "hazard_probability" in df.columns else "hazard_prob"
 if hazard_column not in df.columns:
-    raise ValueError("Missing hazard probability column for Figure 4")
+    raise ValueError("Missing hazard probability column for Figure 3")
 
 corr_hazard_depth = float(
     df[["true_depth", hazard_column]].corr().iloc[0, 1]) if "true_depth" in df.columns else float("nan")
@@ -455,7 +376,7 @@ ax.axhline(
     label="Decision Boundary")
 
 ax.plot(x_fit, y_fit,
-    color="purple",
+    color="navy",
     linewidth=3.2,
     label="Logistic Fit")
 
@@ -495,7 +416,6 @@ print("Fusion Engine Evaluation Figures Generated:")
 print()
 print("✓ fusion_posterior.png")
 print("✓ rmse_comparison.png")
-print("✓ confidence_analysis.png")
 print("✓ hazard_probability.png")
 print()
 print("=" * 60)
