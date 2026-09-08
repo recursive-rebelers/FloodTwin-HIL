@@ -1,0 +1,11 @@
+numpy
+pandas
+scipy
+matplotlib
+psutil
+scikit-learn
+networkx
+tqdm
+joblib
+PyYAML
+opencv-python-headless

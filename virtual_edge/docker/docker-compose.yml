@@ -1,0 +1,25 @@
+services:
+  virtual_pi:
+    build:
+      context: ../..
+      dockerfile: virtual_edge/docker/Dockerfile
+
+    image: floodtwin-virtual-edge
+    container_name: virtual_pi_node
+    hostname: raspberrypi4b
+    working_dir: /app/FloodTwin-HIL
+
+    stdin_open: true
+    tty: true
+    init: true
+
+    volumes:
+      - ../..:/app/FloodTwin-HIL
+      - /app/FloodTwin-HIL/venv/
+
+    cpus: "4.0"
+    cpuset: "0-3"
+    mem_limit: 4g
+    memswap_limit: 4g
+    shm_size: 256m
+    restart: always
