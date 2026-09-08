@@ -9,7 +9,7 @@ class BaseSensor(ABC):
         self.name = str(name)
         self.config = dict(config) if config else {}
         self.seed = int(seed)
-        self.rng = np.random.default_rng(self.seed)  # Per-sensor RNG for reproducibility
+        self.rng = np.random.default_rng(self.seed)
 
     @abstractmethod
     def generate(self, scenario: dict) -> Any:

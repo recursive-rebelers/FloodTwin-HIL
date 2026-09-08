@@ -29,6 +29,28 @@ class TurbidityModel:
     def metadata(self):
         return {
             "sensor": "SEN0189",
+            "sensor_type": "Optical_Turbidity_Sensor",
             "noise_sigma": self.noise_sigma,
-            "categories": ["Clear", "Moderate", "High", "Extreme"]
+            "model_type": "Phenomenological Digital Twin",
+            "measurement_interpretation": "Synthetic turbidity observation in NTU",
+
+            "physical_model": [
+                "Gaussian Measurement Noise",
+                "Turbidity-Based Water Quality Classification",
+                "Exponential Degradation Modeling",
+                "Turbidity-Dependent Reliability"
+            ],
+
+            "assumptions": [
+                "Measurement noise is represented using an engineering-defined Gaussian model.",
+                "Degradation and reliability functions are synthetic Digital Twin relationships.",
+                "Reliability represents simulation-derived confidence rather than manufacturer-specified sensor reliability."
+            ],
+
+            "categories": [
+                "Clear",
+                "Moderate",
+                "High",
+                "Extreme"
+            ]
         }

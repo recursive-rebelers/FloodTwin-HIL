@@ -35,11 +35,22 @@ class LidarModel:
             "sensor": "VL53L1X",
             "base_noise_sigma": self.base_noise_sigma,
             "refraction_factor": self.refraction_factor,
+            "model_type": "Phenomenological Digital Twin",
+            "measurement_interpretation": "Depth-equivalent LiDAR observation",
 
             "physical_model": [
-                "Beer-Lambert Water Attenuation",
-                "Optical Turbidity Scattering",
-                "Saturating Water Refraction",
-                "Gaussian Receiver Noise",
+                "Water-Depth-Dependent Optical Degradation",
+                "Turbidity-Dependent Scattering Degradation",
+                "Phenomenological Refraction-Induced Bias",
+                "Gaussian Measurement Noise",
+            ],
+            
+            "assumptions": [
+                "Water and turbidity effects are represented using "
+                "engineering-defined phenomenological relationships.",
+                "The model represents LiDAR-like depth observation behavior "
+                "rather than full optical propagation through water.",
+                "Model parameters are synthetic and intended for controlled "
+                "Digital Twin experimentation rather than experimental calibration."
             ]
         }

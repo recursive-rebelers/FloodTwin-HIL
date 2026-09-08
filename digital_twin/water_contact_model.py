@@ -29,3 +29,26 @@ class FSIR01Model:
             "confidence": round(confidence, 3),
             "reliability": round(confidence, 3)
         }
+
+    def metadata(self):
+        return {
+            "sensor": "FSIR01",
+            "sensor_type": "Water_Detection_Sensor",
+            "noise_sigma": self.noise_sigma,
+            "model_type": "Phenomenological Digital Twin",
+            "measurement_interpretation":
+                "Synthetic water-presence and inundation-state observation",
+
+            "states": [
+                "Dry",
+                "Shallow Puddle",
+                "Flooded Pothole"
+            ],
+
+            "assumptions": [
+                "Water-state detection is represented using engineering-defined depth thresholds.",
+                "Measurement uncertainty is represented using Gaussian noise.",
+                "Confidence represents simulation-derived detection confidence rather than manufacturer-specified sensor reliability.",
+                "The model provides water-state information rather than direct quantitative water-depth measurement."
+            ]
+        }

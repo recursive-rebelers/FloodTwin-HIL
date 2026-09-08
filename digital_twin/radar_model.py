@@ -36,5 +36,25 @@ class RadarModel:
     def metadata(self):
         return {
             "sensor": "HLK-LD2411S",
-            "noise_sigma": self.base_noise_sigma
+            "sensor_type": "24-GHz_mmWave",
+            "noise_sigma": self.base_noise_sigma,
+            "model_type": "Phenomenological Digital Twin",
+            "measurement_interpretation":
+                "Radar-derived depth-equivalent observation",
+
+            "physical_model": [
+                "Water-Dependent Measurement Noise",
+                "Environment-Dependent Clutter",
+                "Synthetic SNR Degradation",
+                "Normalized Return-Strength Indicator"
+            ],
+
+            "assumptions": [
+                "The model abstracts mmWave sensing behavior for controlled "
+                "Digital Twin experimentation.",
+                "Distance represents a depth-equivalent observation rather "
+                "than a manufacturer-calibrated pothole-depth measurement.",
+                "Noise, clutter, SNR, and return-strength parameters are "
+                "engineering-defined simulation parameters."
+            ]
         }

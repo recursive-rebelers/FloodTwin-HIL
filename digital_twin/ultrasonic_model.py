@@ -93,7 +93,7 @@ class UltrasonicModel:
 
         # Fallback echo estimates if the caller only supplies water depth
         if surface_echo is None:
-            surface_echo = 0.15 + 0.45 * (1.0 - np.exp(-water_depth / 7.0))
+            surface_echo = 0.15 + 0.38 * (1.0 - np.exp(-water_depth / 8.5))
 
         if bottom_echo is None:
             bottom_echo = max(0.05, 1.0 - float(surface_echo))
@@ -176,11 +176,15 @@ class UltrasonicModel:
     def metadata(self):
         return {
             "sensor": "JSN-SR04T",
+            "sensor_type": "Ultrasonic_ToF",
             "base_noise_sigma": self.base_noise_sigma,
+            "model_type": "Phenomenological Digital Twin",
+            "measurement_interpretation":
+                "Depth-equivalent ultrasonic observation",
 
             "physical_model": [
                 "Surface Echo Competition",
-                "Acoustic Water Penetration",
+                "Water-Layer Echo Geometry",
                 "Bottom Echo Detection",
                 "Echo Ambiguity Modeling",
                 "Gaussian Time-of-Flight Noise",
@@ -189,4 +193,16 @@ class UltrasonicModel:
                 "Bottom Confidence Estimation",
                 "Measurement-Type-Aware Reliability",
             ],
+
+            "assumptions": [
+                "Surface and bottom echo behavior is represented "
+                "using engineering-defined phenomenological relationships.",
+                "The model abstracts ultrasonic sensing behavior "
+                "rather than simulating full acoustic propagation.",
+                "Noise, echo, confidence, and reliability parameters "
+                "are synthetic Digital Twin parameters.",
+                "The distance output represents a depth-equivalent "
+                "observation rather than a manufacturer-calibrated "
+                "submerged pothole-depth measurement."
+            ]
         }
