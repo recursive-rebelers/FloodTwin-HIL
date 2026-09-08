@@ -1,0 +1,25 @@
+runtime:
+  source_mode: registry
+  random_seed: 42
+  max_scenarios: 30000
+  log_every_n: 1
+  use_fault_injection: true
+  profile_name: baseline_registry
+
+paths:
+  repo_root: .
+  scenarios_csv: datasets/scenario_registry.csv
+  dataset_csv: datasets/dataset_v2.csv
+  output_root: results/virtual_edge
+  figures_root: figures/virtual_edge
+  reports_root: paper/reports
+
+hardware_envelope:
+  target: Raspberry Pi 4B (4 GB)
+  cpu_quota_cores: 4.0
+  memory_limit_gb: 4.0
+
+fusion:
+  depth_min_cm: 0.0
+  depth_max_cm: 30.0
+  resolution: 300

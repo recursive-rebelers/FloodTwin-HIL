@@ -1,0 +1,75 @@
+experiments:
+  baseline_registry:
+    description: Nominal registry-driven validation without environmental or sensor degradation
+    source_mode: registry
+    profile_name: baseline_registry
+    max_scenarios: 30000
+    filters: {}
+
+  baseline_dataset:
+    description: Dataset replay validation using recorded synthetic sensor observations
+    source_mode: dataset
+    profile_name: baseline_dataset
+    max_scenarios: 30000
+    filters: {}
+
+  flood_severity:
+    description: Deep flood / flooded pothole regime
+    source_mode: dataset
+    profile_name: flood_severity
+    max_scenarios: 30000
+    filters:
+      water_depth_min: 1.2
+
+  muddy_water:
+    description: High turbidity optical-degradation regime
+    source_mode: dataset
+    profile_name: muddy_water
+    max_scenarios: 30000
+    filters:
+      ntu_min: 140.0
+
+  high_speed:
+    description: High-speed traversal with motion-induced sensing stress
+    source_mode: dataset
+    profile_name: high_speed
+    max_scenarios: 30000
+    filters:
+      vehicle_speed_min: 40.0
+
+  complex_environment:
+    description: Challenging mixed-environment scenes with high scene complexity
+    source_mode: dataset
+    profile_name: complex_environment
+    max_scenarios: 30000
+    filters:
+      scene_complexity_min: 0.15
+
+  sensor_failure:
+    description: Single-sensor failure robustness evaluation
+    source_mode: dataset
+    profile_name: sensor_failure
+    max_scenarios: 30000
+    filters: {}
+
+  compound_fault:
+    description: Multi-sensor compound fault robustness evaluation
+    source_mode: dataset
+    profile_name: compound_fault
+    max_scenarios: 30000
+    filters: {}
+
+  uncertainty_analysis:
+    description: Bayesian confidence calibration and uncertainty quality evaluation
+    source_mode: dataset
+    profile_name: uncertainty_analysis
+    max_scenarios: 30000
+    filters:
+      true_depth_min: 10.0
+
+  stress_test:
+    description: Long-duration throughput, latency, and resource-stability evaluation
+    source_mode: dataset
+    profile_name: stress_test
+    max_scenarios: 100000
+    filters: {}

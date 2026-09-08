@@ -1,0 +1,73 @@
+logging:
+  enabled: true
+
+  console:
+    enabled: true
+    level: INFO            # DEBUG | INFO | WARNING | ERROR | CRITICAL
+    show_progress: true
+    show_summary: true
+    show_stage_latency: false
+    show_resource_usage: true
+
+  csv:
+    enabled: true
+    output_directory: results/virtual_edge
+
+    per_scenario:
+      enabled: true
+      filename: virtual_edge_scenarios.csv
+
+    stage_metrics:
+      enabled: true
+      filename: virtual_edge_stage_metrics.csv
+
+    summary:
+      enabled: true
+      filename: virtual_edge_summary.csv
+
+  json:
+    enabled: true
+    summary:
+      enabled: true
+      filename: virtual_edge_summary.json
+
+  performance:
+    enabled: true
+
+    resource_sampling:
+      enabled: true
+      interval_seconds: 1.0
+
+    stage_timing:
+      enabled: true
+
+    throughput:
+      enabled: true
+
+  experiment:
+    save_metadata: true
+    save_configuration: true
+    save_fault_profiles: true
+    save_sensor_states: true
+    save_reliability_vectors: true
+    save_posterior_distribution: true
+    save_uncertainty_statistics: true
+
+  formatting:
+    float_precision: 6
+    json_indent: 2
+    ensure_ascii: false
+    timestamp_format: iso8601
+
+  overwrite_policy:
+    overwrite_existing: true
+    create_timestamped_directory: false
+
+  compression:
+    enabled: false
+    format: zip
+
+  validation:
+    verify_output_files: true
+    verify_csv_schema: true
+    verify_json_schema: true
