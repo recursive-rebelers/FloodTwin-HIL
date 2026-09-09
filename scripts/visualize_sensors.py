@@ -1,11 +1,13 @@
 import os
+from pathlib import Path
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 
+TARGET = Path(__file__).resolve().parent.parent
 os.makedirs("figures/digital_twin", exist_ok=True)
-df = pd.read_csv("datasets/dataset_v1.csv")
+df = pd.read_csv(TARGET / "datasets" / "dataset_v1.csv")
 sns.set_theme(style="whitegrid", context="talk")
 
 df["lidar_error"] = (df["lidar"] - df["true_depth"]).abs()
