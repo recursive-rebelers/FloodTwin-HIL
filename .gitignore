@@ -7,6 +7,11 @@ pyvenv.cfg
 *.json
 .env*
 
+# Allowed JSON Files
+!metadata.json
+!public_dataset_metadata.json
+!evaluation_report.json
+
 # Temporary Local Test Files
 results/digital_twin/correlation_matrix.csv
 results/digital_twin/numerical_statistics.csv
