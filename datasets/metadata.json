@@ -1,0 +1,31 @@
+{
+    "dataset_name": "FloodTwin-HIL Dataset V2",
+    "created": "2026-09-08 01:53:18",
+    "version": "2.0",
+    "scenario_count": 30000,
+    "truth_usage_policy": {
+        "water_depth": "Latent ground truth; evaluation only",
+        "severity": "Scenario metadata; not used for reliability inference",
+        "lidar_error": "Evaluation label derived from ground truth",
+        "ultrasonic_error": "Evaluation label derived from ground truth",
+        "radar_error": "Evaluation label derived from ground truth"
+    },
+    "observable_provenance": {
+        "water_state": "Sensor-derived logic",
+        "water_contact": "Sensor-derived logic",
+        "surface_echo": "Ultrasonic-observable parameter",
+        "bottom_echo": "Ultrasonic-observable parameter",
+        "clutter_probability": "Radar-observable parameter",
+        "snr": "Radar-observable parameter",
+        "ntu": "Turbidity sensor observable parameter"
+    },
+    "scientific_provenance": {
+        "water_context_depth_proxy": "A rule-based observable water-context proxy bounded to 0-20 cm. It represents a context severity score and is NOT a ground-truth water depth estimator",
+        "measurement_consistency": "Inter-sensor measurement consistency based on relative dispersion. High consistency does not automatically guarantee high accuracy if sensors fail in a correlated manner",
+        "scene_complexity": "A bounded phenomenological construct whose coefficients represent predefined expert priors rather than fitted parameters",
+        "missing_data_handling": "Missing observable inputs trigger explicit availability flags and are replaced by predefined neutral engineering priors for continued computation. These imputed values are not treated as direct observations and should be interpreted as uncertainty-bearing defaults.",
+        "maximum_spread_prior": "Measurement spread is normalized using a fixed physical prior (NOMINAL_MAX_SPREAD_CM = 15.0) rather than a transductive dataset-wide percentile",
+        "adaptive_fusion_estimate": "An auxiliary linear-weighted depth estimate is calculated to provide baseline validation for the fusion weights relative to an equal-weighted fusion and the oracle best sensor",
+        "sensor_availability_flow": "Unavailable sensors are strictly propagated: sensor missing -> Reliability = 0 -> Weight = 0 -> measurement contributes nothing to the fusion estimate"
+    }
+}
